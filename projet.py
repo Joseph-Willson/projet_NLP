@@ -9,6 +9,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.svm import SVC
 
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score
+
 
 x_train = pd.read_csv(r"./data/x_train.csv")
 y_train = pd.read_csv(r"./data/y_train.csv")
@@ -61,3 +70,36 @@ output_test = x_test[["ID", "predicted_intention"]]
 output_test.to_csv("submission.csv", index=False)
 
 print("Le projet est bien enregistrer en submission.csv")
+
+
+# Define the parameter grid to search
+param_grid = {
+    'C': [0.1, 1, 10, 100, 400],
+    'kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
+    'gamma': ['scale', 'auto']
+}
+
+# Initialize the grid search with cross-validation
+grid_search = GridSearchCV(SVC(), param_grid, cv=5, n_jobs=-1)
+
+# Fit the grid search to find the best parameters
+grid_search.fit(train_x, train_y)
+
+# Get the best parameters and the best estimator
+best_params = grid_search.best_params_
+best_estimator = grid_search.best_estimator_
+
+# Use the best estimator for prediction
+y_score = best_estimator.predict(test_x)
+
+# Calculate accuracy
+accuracy = (y_score == test_y).mean()
+print("Accuracy: %.2f%%" % (accuracy * 100))
+
+# Predict on test set and save results
+y_test_score = best_estimator.predict(x_test_tfidf)
+x_test['predicted_intention'] = [list(top_10_varieties.keys())[i] for i in y_test_score]
+output_test = x_test[["ID", "predicted_intention"]]
+output_test.to_csv("submission_improved.csv", index=False)
+
+print("Le projet est bien enregistré en submission_improved.csv")
